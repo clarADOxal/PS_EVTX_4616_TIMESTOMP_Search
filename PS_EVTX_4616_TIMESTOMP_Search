@@ -1,0 +1,114 @@
+# ─── LABEL CREATION ────────────────────────────────────────────────
+cls
+$Name="PS_EVTX_4616_TIMESTOMP_Search"
+$version="0.1"
+$Creation_Date = "00:25 15/08/2025"
+
+#Delete unused method
+#───────────────
+$Creation_How = "Gemini+Humain Brain"
+
+#Logo Exemple
+#─────────
+$Logo = "  ___`n / | \`n(  .--)`n \___/`n"
+
+#Todo
+#───
+$Todo="To Do"
+$Todo+="0.1 - First time event check"
+$Todo+="0.2 - Export as csv file"
+
+#Label
+#────
+if (($Name.Length) -gt ($version.Length)){
+	$fior1=$Name.Length+10;
+	$fior2=($name.length)-($name.length)
+	$fior3=($name.length)-($version.length)
+} else {
+	$fior1=$version.length+10;
+	$fior2=($version.length)-($name.length)
+	$fior3=(($version.length)-($version.length))
+}
+
+$fior1result="";for ($j=1; $j -le $fior1; $j++) { $fior1result+="#" }
+$fior2result="";for ($j=1; $j -le $fior2; $j++) { $fior2result+=" " }
+$fior3result="";for ($j=1; $j -le $fior3; $j++) { $fior3result+=" " }
+
+write-host $fior1result
+write-host "####"$Name$fior2result" ####"
+write-host "####"$version$fior3result" ####"
+write-host $fior1result
+get-date -displayHint Time
+write-host $Logo
+
+sleep
+cls
+
+# ─── FOLDER CREATION ────────────────────────────────────────────────
+
+$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+foreach ($dir in "IN","OUT") {
+    $FullPath = Join-Path $ScriptPath $dir
+    if (-Not (Test-Path $FullPath)) { New-Item $FullPath -ItemType Directory | Out-Null }
+}
+
+# ─── CONFIGURATION ────────────────────────────────────────────────
+# Set Security log Path
+$LogFilePath = ".\IN\security.evtx"
+write-host -fore blue "Log d'entrée : security.evtx"
+
+
+# ─── RUN ────────────────────────────────────────────────
+
+cls
+
+
+# Check if Security Log File exists
+if (-not (Test-Path -Path $LogFilePath -PathType Leaf)) {
+    Write-Host "Le fichier de journal '$LogFilePath' n'existe pas. Veuillez vérifier le chemin." -ForegroundColor Red
+    exit
+}
+
+# Search ID 4616 
+try {
+    # Load all events 
+    $Events = Get-WinEvent -Path $LogFilePath | Where-Object { $_.ID -eq 4616 }
+    
+    # Show Event count
+    Write-Host "Nombre d'événements 4616 trouvés : $($Events.Count)" -ForegroundColor Green
+
+    if ($Events.Count -gt 0) {
+        # Show event details
+        Write-Host "Détails des événements 4616 :"
+        $Events | ForEach-Object {
+            Write-Host "--------------------------------------------------"
+	    Write-Host -fore green "Computer : $($_.MachineName)"
+            Write-Host "Event Date : $($_.TimeCreated)"
+            Write-Host "User Account : $($_.Properties[0].Value)"
+            Write-Host "Account Name : $($_.Properties[1].Value)"
+            Write-Host "Domain : $($_.Properties[2].Value)"
+            Write-Host "Change reason : $($_.Properties[3].Value)"
+            Write-Host "Hour1 : $($_.Properties[4].Value)"
+            Write-Host "Hour2 : $($_.Properties[5].Value)"
+
+            $oldTime = $($_.Properties[4].Value)
+            $newTime = $($_.Properties[5].Value)
+            
+            # Convert in Hours to do delta
+            $oldTimeDT = [datetime]$oldTime
+            $newTimeDT = [datetime]$newTime
+            
+            # Time Delta
+            $timeDelta = $newTimeDT - $oldTimeDT
+
+            Write-Host -fore red "Delta H2-H1 : $timeDelta"
+            Write-Host "Nom Proc : $($_.Properties[7].Value)"
+
+        }
+    }
+}
+catch {
+    Write-Host "Error during file read : $_" -ForegroundColor Red
+}
+
+sleep
